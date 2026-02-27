@@ -1,1 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BirdBSE Data</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 12px;">
+  <div id="data-container">Cargando...</div>
 
+  <script>
+    fetch("https://script.google.com/macros/s/AKfycby4SOohhOCnX86VneVf6JHrPABv6ioVWOCfoO4H8sel7Cdl_cNhZaq05090xztdquAy/exec")
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) {
+          document.getElementById("data-container").innerText = "No hay datos.";
+          return;
+        }
+
+        const keys = Object.keys(data[0]);
+
+        let html = `
+          <div style="overflow:auto;max-width:100%;">
+            <table style="border-collapse:collapse;width:100%;font-size:14px;">
+              <thead>
+                <tr>
+                  ${keys.map(k => `<th style="border:1px solid #ddd;padding:10px;background:#f2f2f2;position:sticky;top:0;white-space:nowrap;">${k}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${data.map(row => `
+                  <tr>
+                    ${keys.map(k => `<td style="border:1px solid #ddd;padding:10px;white-space:nowrap;">${row[k] ?? ""}</td>`).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        document.getElementById("data-container").innerHTML = html;
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("data-container").innerText =
+          "Error cargando data. Revisa permisos del Apps Script o acceso público.";
+      });
+  </script>
+</body>
+</html>

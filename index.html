@@ -109,27 +109,37 @@ tr.top1 td:first-child{ border-left: 3px solid var(--brand); }
 .tableScroll::-webkit-scrollbar-thumb:hover{ background:rgba(55,55,57,.35); }
 
 /* ========================= */
-/* ✅ MOBILE CAROUSEL MODE   */
+/* ✅ MOBILE CAROUSEL (modern) */
 /* ========================= */
 @media (max-width: 900px){
-  /* Switch to horizontal carousel */
+  /* Hide desktop grid behavior */
   .container{
-    display:flex;
-    gap:14px;
-    overflow-x:auto;
-    overflow-y:hidden;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    padding: 0 8px;           /* small inner breathing */
+    display:block;
+    gap:0;
   }
 
-  /* Each card becomes a slide */
-  .card{
-    flex: 0 0 88%;
-    max-width: 88%;
+  .carousel{
+    position: relative;
+    width:100%;
+  }
+
+  .track{
+    display:flex;
+    overflow:hidden;            /* modern carousel: no scrollbar */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;        /* allow vertical page scroll */
+  }
+
+  .slide{
+    flex: 0 0 100%;
+    padding: 0 2px;             /* tiny spacing */
     scroll-snap-align: start;
+  }
+
+  .card{
     padding:14px;
-    border-radius:12px;
+    border-radius:14px;
   }
 
   .card h2{
@@ -137,7 +147,7 @@ tr.top1 td:first-child{ border-left: 3px solid var(--brand); }
     margin-bottom:12px;
   }
 
-  /* IMPORTANT: remove internal vertical scroll in mobile */
+  /* IMPORTANT: remove internal scroll on mobile */
   .tableScroll{
     max-height:none;
     overflow:visible;
@@ -149,29 +159,62 @@ tr.top1 td:first-child{ border-left: 3px solid var(--brand); }
   thead th{
     padding:8px 6px;
     font-size:10px;
-    position: static; /* no sticky in mobile */
+    position: static;
   }
   tbody td{ padding:10px 6px; }
   .place{ font-size:14px; width:70px; }
   .tickets{ font-size:14px; }
 
-  /* Carousel scrollbar (optional, subtle) */
-  .container::-webkit-scrollbar{ height:8px; }
-  .container::-webkit-scrollbar-thumb{
-    background:rgba(55,55,57,.18);
+  /* Nav buttons */
+  .navBtn{
+    position:absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width:40px;
+    height:40px;
     border-radius:999px;
+    border:1px solid rgba(55,55,57,.12);
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 12px 28px rgba(0,0,0,.10);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+  }
+  .navBtn:active{ transform: translateY(-50%) scale(.98); }
+  .navPrev{ left: 6px; }
+  .navNext{ right: 6px; }
+
+  /* Dots */
+  .dots{
+    margin-top: 10px;
+    display:flex;
+    justify-content:center;
+    gap:8px;
+  }
+  .dot{
+    width:8px;
+    height:8px;
+    border-radius:999px;
+    background: rgba(55,55,57,.18);
+    transition: transform .15s ease, background .15s ease, width .15s ease;
+  }
+  .dot.active{
+    width:18px;
+    background: var(--brand);
   }
 }
 
-/* Extra-small phones: show a bit more width per slide */
-@media (max-width: 420px){
-  .card{ flex-basis: 92%; max-width: 92%; }
+/* If user prefers reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .dot{ transition:none; }
 }
 </style>
 </head>
 
 <body>
-<div class="container" id="wrap">Loading...</div>
+<div id="wrap" class="container">Loading...</div>
 
 <script>
 const BASE = "https://script.google.com/macros/s/AKfycbzRAtIeeuG0-J357d8qHoNZng4XthJYRpVSFeqWvxV0YFutUycVpUdDo4a2P_fbx3AP/exec";
@@ -183,52 +226,150 @@ function esc(s){
   }[m]));
 }
 
+function isMobile(){
+  const w = Math.min(document.documentElement.clientWidth || 9999, window.innerWidth || 9999);
+  return w <= 900;
+}
+
+function buildTable(rows){
+  return `
+    <div class="tableScroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Pos</th>
+            <th>Name</th>
+            <th style="text-align:right;">Tks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((row, idx)=>`
+            <tr class="${idx === 0 ? "top1" : ""}">
+              <td class="place">${esc(row.place)}</td>
+              <td class="name">${esc(row.name)}</td>
+              <td class="tickets">${esc(row.tickets)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderDesktop(categories){
+  let html = "";
+  categories.forEach(cat=>{
+    const rows = Array.isArray(cat.ranking) ? cat.ranking : [];
+    html += `
+      <div class="card">
+        <h2>${esc(cat.category)}</h2>
+        ${buildTable(rows)}
+      </div>
+    `;
+  });
+  document.getElementById("wrap").innerHTML = html;
+}
+
+function renderMobileCarousel(categories){
+  // only top 10 per category on mobile
+  const slides = categories.map((cat, i)=>{
+    const all = Array.isArray(cat.ranking) ? cat.ranking : [];
+    const rows = all.slice(0, 10);
+    return `
+      <div class="slide" data-index="${i}">
+        <div class="card">
+          <h2>${esc(cat.category)}</h2>
+          ${buildTable(rows)}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const dots = categories.map((_, i)=>`<div class="dot ${i===0?"active":""}" data-dot="${i}"></div>`).join("");
+
+  document.getElementById("wrap").innerHTML = `
+    <div class="carousel">
+      <div class="track" id="track">
+        ${slides}
+      </div>
+      <div class="navBtn navPrev" id="prevBtn" aria-label="Previous">‹</div>
+      <div class="navBtn navNext" id="nextBtn" aria-label="Next">›</div>
+      <div class="dots" id="dots">${dots}</div>
+    </div>
+  `;
+
+  const track = document.getElementById("track");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const dotEls = Array.from(document.querySelectorAll(".dot"));
+
+  let index = 0;
+
+  function setActiveDot(i){
+    dotEls.forEach(d => d.classList.remove("active"));
+    const el = dotEls[i];
+    if (el) el.classList.add("active");
+  }
+
+  function goTo(i){
+    index = Math.max(0, Math.min(i, categories.length - 1));
+    const x = index * track.clientWidth;
+    track.scrollTo({ left: x, behavior: "smooth" });
+    setActiveDot(index);
+  }
+
+  // Buttons
+  prevBtn.addEventListener("click", () => goTo(index - 1));
+  nextBtn.addEventListener("click", () => goTo(index + 1));
+
+  // Dots click
+  dotEls.forEach((d, i) => d.addEventListener("click", () => goTo(i)));
+
+  // Swipe update dots (on scroll end-ish)
+  let t;
+  track.addEventListener("scroll", () => {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      const i = Math.round(track.scrollLeft / track.clientWidth);
+      index = Math.max(0, Math.min(i, categories.length - 1));
+      setActiveDot(index);
+    }, 80);
+  });
+
+  // Initial
+  setActiveDot(0);
+}
+
+let cached = null;
+
+function render(){
+  if(!cached || !Array.isArray(cached.categories)){
+    document.getElementById("wrap").innerHTML = "No data.";
+    return;
+  }
+  if(isMobile()) renderMobileCarousel(cached.categories);
+  else renderDesktop(cached.categories);
+}
+
 fetch(API)
   .then(r => r.json())
   .then(data => {
-    if(!data.categories){
-      document.getElementById("wrap").innerHTML="No data.";
-      return;
-    }
-
-    let html = "";
-
-    data.categories.forEach(cat=>{
-      const rows = Array.isArray(cat.ranking) ? cat.ranking : [];
-
-      html += `
-        <div class="card">
-          <h2>${esc(cat.category)}</h2>
-
-          <div class="tableScroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Pos</th>
-                  <th>Name</th>
-                  <th style="text-align:right;">Tks</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows.map((row, idx)=>`
-                  <tr class="${idx === 0 ? "top1" : ""}">
-                    <td class="place">${esc(row.place)}</td>
-                    <td class="name">${esc(row.name)}</td>
-                    <td class="tickets">${esc(row.tickets)}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    });
-
-    document.getElementById("wrap").innerHTML = html;
+    cached = data;
+    render();
   })
   .catch(() => {
     document.getElementById("wrap").innerHTML="Error loading rankings.";
   });
+
+// Re-render if breakpoint changes (orientation/resize)
+let rr;
+window.addEventListener("resize", () => {
+  clearTimeout(rr);
+  rr = setTimeout(render, 200);
+});
+window.addEventListener("orientationchange", () => {
+  setTimeout(render, 250);
+});
 </script>
 </body>
 </html>

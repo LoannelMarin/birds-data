@@ -1,50 +1,207 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BirdBSE Data</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rankings</title>
+
+<style>
+:root{
+  --brand:#aa2227;
+  --dark:#373739;
+  --line:rgba(55,55,57,.08);
+}
+
+body{
+  margin:0;
+  background:#ffffff;
+  font-family:Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color:var(--dark);
+}
+
+/* ✅ 2 cards per row (responsive) */
+.container{
+  max-width:1200px;
+  margin:40px auto;
+  padding:0 20px;
+
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:28px;
+}
+
+/* ✅ Mobile: 1 per row */
+@media (max-width: 900px){
+  .container{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Category Card */
+.card{
+  background:#ffffff;
+  border-radius:16px;
+  padding:28px;
+  /* margin-bottom removed because grid gap handles spacing */
+  box-shadow:0 15px 40px rgba(0,0,0,.06);
+  border:1px solid var(--line);
+}
+
+/* Category Title */
+.card h2{
+  margin:0 0 20px 0;
+  font-weight:600;
+  letter-spacing:.5px;
+  font-size:20px;
+}
+
+/* Scroll area (shows ~10 rows then scroll) */
+.tableScroll{
+  max-height: 520px;            /* ~10 rows */
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 12px;
+}
+
+/* Table */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:15px;
+}
+
+thead th{
+  text-align:left;
+  padding:14px 12px;
+  font-weight:600;
+  font-size:12px;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:rgba(55,55,57,.6);
+  border-bottom:1px solid var(--line);
+  position: sticky;            /* sticky header inside scroll */
+  top: 0;
+  background:#ffffff;
+  z-index: 1;
+}
+
+tbody td{
+  padding:18px 12px;
+  border-bottom:1px solid var(--line);
+  font-weight:500;
+}
+
+tbody tr:last-child td{
+  border-bottom:none;
+}
+
+/* Position column (ONLY red) */
+.place{
+  font-weight:700;
+  color:var(--brand);
+  font-size:16px;
+  width:100px;
+}
+
+/* Name column */
+.name{
+  font-weight:600;
+  letter-spacing:.2px;
+}
+
+/* Tickets column */
+.tickets{
+  text-align:right;
+  font-weight:600;
+  font-size:16px;
+}
+
+/* Optional: nicer scrollbar (Chrome/Edge) */
+.tableScroll::-webkit-scrollbar{
+  width: 10px;
+}
+.tableScroll::-webkit-scrollbar-track{
+  background: rgba(55,55,57,.04);
+  border-radius: 999px;
+}
+.tableScroll::-webkit-scrollbar-thumb{
+  background: rgba(55,55,57,.18);
+  border-radius: 999px;
+}
+.tableScroll::-webkit-scrollbar-thumb:hover{
+  background: rgba(55,55,57,.28);
+}
+</style>
 </head>
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 12px;">
-  <div id="data-container">Cargando...</div>
 
-  <script>
-    fetch("https://script.google.com/macros/s/AKfycby4SOohhOCnX86VneVf6JHrPABv6ioVWOCfoO4H8sel7Cdl_cNhZaq05090xztdquAy/exec")
-      .then(r => r.json())
-      .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
-          document.getElementById("data-container").innerText = "No hay datos.";
-          return;
-        }
+<body>
 
-        const keys = Object.keys(data[0]);
+<div class="container" id="wrap">
+Loading...
+</div>
 
-        let html = `
-          <div style="overflow:auto;max-width:100%;">
-            <table style="border-collapse:collapse;width:100%;font-size:14px;">
+<script>
+const BASE = "https://script.google.com/macros/s/AKfycbzRAtIeeuG0-J357d8qHoNZng4XthJYRpVSFeqWvxV0YFutUycVpUdDo4a2P_fbx3AP/exec";
+
+// Pull more than 10 so the scroll has content
+const API = `${BASE}?top=100&_=${Date.now()}`;
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[m]));
+}
+
+fetch(API)
+  .then(r=>r.json())
+  .then(data=>{
+    if(!data.categories){
+      document.getElementById("wrap").innerHTML="No data.";
+      return;
+    }
+
+    let html="";
+
+    data.categories.forEach(cat=>{
+      const rows = Array.isArray(cat.ranking) ? cat.ranking : [];
+
+      html+=`
+        <div class="card">
+          <h2>${esc(cat.category)}</h2>
+
+          <div class="tableScroll">
+            <table>
               <thead>
                 <tr>
-                  ${keys.map(k => `<th style="border:1px solid #ddd;padding:10px;background:#f2f2f2;position:sticky;top:0;white-space:nowrap;">${k}</th>`).join("")}
+                  <th>Position</th>
+                  <th>Name</th>
+                  <th style="text-align:right;">Tickets</th>
                 </tr>
               </thead>
               <tbody>
-                ${data.map(row => `
-                  <tr>
-                    ${keys.map(k => `<td style="border:1px solid #ddd;padding:10px;white-space:nowrap;">${row[k] ?? ""}</td>`).join("")}
-                  </tr>
-                `).join("")}
+                ${
+                  rows.map(row=>`
+                    <tr>
+                      <td class="place">${esc(row.place)}</td>
+                      <td class="name">${esc(row.name)}</td>
+                      <td class="tickets">${esc(row.tickets)}</td>
+                    </tr>
+                  `).join("")
+                }
               </tbody>
             </table>
           </div>
-        `;
+        </div>
+      `;
+    });
 
-        document.getElementById("data-container").innerHTML = html;
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("data-container").innerText =
-          "Error cargando data. Revisa permisos del Apps Script o acceso público.";
-      });
-  </script>
+    document.getElementById("wrap").innerHTML=html;
+  })
+  .catch((e)=>{
+    console.error(e);
+    document.getElementById("wrap").innerHTML="Error loading rankings.";
+  });
+</script>
+
 </body>
 </html>

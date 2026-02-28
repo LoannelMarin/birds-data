@@ -14,6 +14,7 @@
   --brandRowLine: rgba(170,34,39,.18);
 }
 
+/* Base */
 body{
   margin:0;
   background:transparent;
@@ -21,7 +22,7 @@ body{
   color:var(--dark);
 }
 
-/* Desktop Layout */
+/* ====== Desktop Grid ====== */
 .container{
   width:100%;
   display:grid;
@@ -29,28 +30,13 @@ body{
   gap:28px;
 }
 
-/* Responsive */
-@media (max-width: 900px){
-  .container{
-    grid-template-columns: 1fr;
-    gap:16px;
-  }
-}
-
-/* Card */
+/* ====== Card ====== */
 .card{
   background:#ffffff;
   border-radius:16px;
   padding:28px;
   box-shadow:0 15px 40px rgba(0,0,0,.06);
   border:1px solid var(--line);
-}
-
-@media (max-width: 900px){
-  .card{
-    padding:14px;
-    border-radius:12px;
-  }
 }
 
 .card h2{
@@ -60,28 +46,12 @@ body{
   letter-spacing:.5px;
 }
 
-@media (max-width: 900px){
-  .card h2{
-    font-size:16px;
-    margin-bottom:12px;
-  }
-}
-
-/* Scroll (desktop only) */
+/* Desktop: scroll inside card */
 .tableScroll{
   max-height:520px;
   overflow-y:auto;
   overflow-x:hidden;
   border-radius:12px;
-}
-
-/* Mobile: no internal scroll (prevents scroll issues) */
-@media (max-width: 900px){
-  .tableScroll{
-    max-height:none;
-    overflow:visible;
-    border-radius:0;
-  }
 }
 
 /* Table */
@@ -90,7 +60,6 @@ table{
   border-collapse:collapse;
   font-size:15px;
 }
-
 thead th{
   text-align:left;
   padding:14px 12px;
@@ -105,70 +74,99 @@ thead th{
   background:#ffffff;
   z-index: 1;
 }
-
 tbody td{
   padding:18px 12px;
   border-bottom:1px solid var(--line);
   font-weight:500;
 }
+tbody tr:last-child td{ border-bottom:none; }
 
-tbody tr:last-child td{
-  border-bottom:none;
-}
-
-/* Mobile compact */
-@media (max-width: 900px){
-  table{ font-size:13px; }
-  thead th{
-    padding:8px 6px;
-    font-size:10px;
-    position: static; /* no sticky on mobile */
-  }
-  tbody td{
-    padding:10px 6px;
-  }
-}
-
-/* Position */
+/* Position red only */
 .place{
   font-weight:700;
   color:var(--brand);
   font-size:16px;
   width:90px;
 }
-@media (max-width: 900px){
-  .place{ font-size:14px; width:70px; }
-}
-
 .name{ font-weight:600; }
-
 .tickets{
   text-align:right;
   font-weight:600;
   font-size:16px;
 }
-@media (max-width: 900px){
-  .tickets{ font-size:14px; }
-}
 
-/* ✅ Highlight row #1 ONLY (no pill) */
-tr.top1{
-  background: var(--brandRow);
-}
-tr.top1 td{
-  border-bottom-color: var(--brandRowLine);
-}
-tr.top1 td:first-child{
-  border-left: 3px solid var(--brand);
-}
+/* Highlight #1 row */
+tr.top1{ background: var(--brandRow); }
+tr.top1 td{ border-bottom-color: var(--brandRowLine); }
+tr.top1 td:first-child{ border-left: 3px solid var(--brand); }
 
-/* Scrollbar (desktop only) */
+/* Desktop scrollbar */
 .tableScroll::-webkit-scrollbar{ width:8px; }
 .tableScroll::-webkit-scrollbar-thumb{
   background:rgba(55,55,57,.20);
   border-radius:999px;
 }
 .tableScroll::-webkit-scrollbar-thumb:hover{ background:rgba(55,55,57,.35); }
+
+/* ========================= */
+/* ✅ MOBILE CAROUSEL MODE   */
+/* ========================= */
+@media (max-width: 900px){
+  /* Switch to horizontal carousel */
+  .container{
+    display:flex;
+    gap:14px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding: 0 8px;           /* small inner breathing */
+  }
+
+  /* Each card becomes a slide */
+  .card{
+    flex: 0 0 88%;
+    max-width: 88%;
+    scroll-snap-align: start;
+    padding:14px;
+    border-radius:12px;
+  }
+
+  .card h2{
+    font-size:16px;
+    margin-bottom:12px;
+  }
+
+  /* IMPORTANT: remove internal vertical scroll in mobile */
+  .tableScroll{
+    max-height:none;
+    overflow:visible;
+    border-radius:0;
+  }
+
+  /* Compact table */
+  table{ font-size:13px; }
+  thead th{
+    padding:8px 6px;
+    font-size:10px;
+    position: static; /* no sticky in mobile */
+  }
+  tbody td{ padding:10px 6px; }
+  .place{ font-size:14px; width:70px; }
+  .tickets{ font-size:14px; }
+
+  /* Carousel scrollbar (optional, subtle) */
+  .container::-webkit-scrollbar{ height:8px; }
+  .container::-webkit-scrollbar-thumb{
+    background:rgba(55,55,57,.18);
+    border-radius:999px;
+  }
+}
+
+/* Extra-small phones: show a bit more width per slide */
+@media (max-width: 420px){
+  .card{ flex-basis: 92%; max-width: 92%; }
+}
 </style>
 </head>
 
@@ -179,89 +177,58 @@ tr.top1 td:first-child{
 const BASE = "https://script.google.com/macros/s/AKfycbzRAtIeeuG0-J357d8qHoNZng4XthJYRpVSFeqWvxV0YFutUycVpUdDo4a2P_fbx3AP/exec";
 const API  = `${BASE}?top=100&_=${Date.now()}`;
 
-// ✅ More robust “mobile” detection inside iframes/embedded pages
-const MOBILE_BREAKPOINT = 900;
-function isMobileNow(){
-  const w = Math.min(
-    document.documentElement.clientWidth || 9999,
-    window.innerWidth || 9999
-  );
-  return w <= MOBILE_BREAKPOINT;
-}
-
 function esc(s){
   return String(s ?? "").replace(/[&<>"']/g, m => ({
     "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
   }[m]));
 }
 
-let cachedData = null;
-
-function render(){
-  if(!cachedData || !cachedData.categories){
-    document.getElementById("wrap").innerHTML = "No data.";
-    return;
-  }
-
-  const mobile = isMobileNow();
-  const limit  = mobile ? 10 : 100; // ✅ EXACTLY 10 rows on mobile
-
-  let html = "";
-
-  cachedData.categories.forEach(cat=>{
-    const all = Array.isArray(cat.ranking) ? cat.ranking : [];
-    const rows = all.slice(0, limit);
-
-    html += `
-      <div class="card">
-        <h2>${esc(cat.category)}</h2>
-
-        <div class="tableScroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Pos</th>
-                <th>Name</th>
-                <th style="text-align:right;">Tks</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map((row, idx)=>`
-                <tr class="${idx === 0 ? "top1" : ""}">
-                  <td class="place">${esc(row.place)}</td>
-                  <td class="name">${esc(row.name)}</td>
-                  <td class="tickets">${esc(row.tickets)}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  });
-
-  document.getElementById("wrap").innerHTML = html;
-}
-
 fetch(API)
   .then(r => r.json())
   .then(data => {
-    cachedData = data;
-    render();
+    if(!data.categories){
+      document.getElementById("wrap").innerHTML="No data.";
+      return;
+    }
+
+    let html = "";
+
+    data.categories.forEach(cat=>{
+      const rows = Array.isArray(cat.ranking) ? cat.ranking : [];
+
+      html += `
+        <div class="card">
+          <h2>${esc(cat.category)}</h2>
+
+          <div class="tableScroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Name</th>
+                  <th style="text-align:right;">Tks</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row, idx)=>`
+                  <tr class="${idx === 0 ? "top1" : ""}">
+                    <td class="place">${esc(row.place)}</td>
+                    <td class="name">${esc(row.name)}</td>
+                    <td class="tickets">${esc(row.tickets)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById("wrap").innerHTML = html;
   })
   .catch(() => {
-    document.getElementById("wrap").innerHTML = "Error loading rankings.";
+    document.getElementById("wrap").innerHTML="Error loading rankings.";
   });
-
-// Re-render on resize/orientation change so the “10 rows on mobile” rule always applies
-let t;
-window.addEventListener("resize", () => {
-  clearTimeout(t);
-  t = setTimeout(render, 150);
-});
-window.addEventListener("orientationchange", () => {
-  setTimeout(render, 200);
-});
 </script>
 </body>
 </html>
